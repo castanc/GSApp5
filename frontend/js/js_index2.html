@@ -1,0 +1,106 @@
+<script>
+let currentSection = "";
+let formulario;
+let inputs;
+let fecha = "2021-01-01";
+let hora = "00:00";
+let RecTypes;
+let GlucLevels;
+
+
+
+function loadBaseData(){
+    let result = true;
+    let json = localStorage.getItem("Items");
+    if ( json != undefined )
+        Items = JSON.parse(json);
+    else result = false;
+
+    if ( result )
+    {
+        json = localStorage.getItem("RecTypes");
+        if ( json != undefined )
+            RecTypes = JSON.parse(json);
+    }
+    else result = false;
+
+    if ( result )
+    {
+        json = localStorage.getItem("GlucLevels");
+        if ( json != undefined )
+            GlucLevels = JSON.parse(json);
+    }
+    else result = false;
+
+    return result;
+
+}
+
+function refreshDate() {
+        dt = new Date();
+        var m = padLeft(dt.getMonth() + 1, 10, '0');
+        var d = padLeft(dt.getDate(), 10, '0');
+        fecha = `${dt.getFullYear()}-${m}-${d}`;
+        var h = padLeft(dt.getHours(), 10, '0');
+        var mi = padLeft(dt.getMinutes(), 10, '0');
+        hora = `${h}:${mi}`;
+
+        var dti = document.getElementById('FECHA');
+        dti.value = fecha;
+
+        dti = document.getElementById('HORA');
+        dti.value = hora;
+    }
+
+
+function resetForm(formId)
+{
+    let form = document.getElementById(formId);
+    form.reset();
+    refreshDate();
+}
+
+function initialize(){
+    formulario = document.getElementById('formulario');
+    console.log("initialize(), formulario:",formulario);
+
+    refreshDate();
+    if (!loadBaseData )
+    {
+
+    }
+
+    //inputs = document.querySelectorAll('#formulario input');
+    // inputs.forEach((input) => {
+	// input.addEventListener('keyup', validarFormulario);
+	// input.addEventListener('blur', validarFormulario);
+//});
+
+}
+
+console.log("js_index onLoad")
+    window.addEventListener('load', initialize);
+    window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
+        console.log("unahndled error:", errorMsg);
+        console.log(url);
+        console.log(lineNumber);
+        return false;
+    }
+
+
+function openSection(sectionName )
+{
+    let p = sectionName.split("_");
+    console.log("openSection()",p,currentSection);
+    if( p[1] == currentSection )
+    {
+        showDiv( p[1],false);
+        currentSection = "";
+        return;
+    }
+    currentSection = p[1];
+    showDiv(currentSection,true);
+}
+
+
+</script>

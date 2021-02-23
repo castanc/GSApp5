@@ -92,7 +92,7 @@ function include(filename) {
 }
 
 function doGet(e) {
-    return  HtmlService.createTemplateFromFile('frontend/index').evaluate();
+    return  HtmlService.createTemplateFromFile('frontend/index2').evaluate();
 }
 
 function getSportTypes()

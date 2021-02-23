@@ -1,5 +1,0 @@
-a combo fed by an array of AVAIALBLE items
-div to put the pills of selected
-onchange:
-    add to pills    
-    remvoe from AVAIALBLE
