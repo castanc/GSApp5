@@ -152,8 +152,7 @@ function getExeItems()
 function getRecTypes()
 {
     let sv = new Service();
-    let html = sv.getHtmlSelectFiltered("Items","RT","Select Record Type","",true);
-    return html;
+    return sv.getRecTypes();
 }
 
 function getFoodItems()
@@ -235,6 +234,7 @@ function getSelectArr(){
 }
 
 
+
 function getItems()
 {
     let sv = new Service();
@@ -252,16 +252,31 @@ function handleException(ex, response, method ="", additional = "" )
     SysLog.logException(ex,method,additional)
 }
 
-function getForm(controlId,formId, formUrl):string{
+function getLocalData(){
     var response = new GSResponse();
 
-    response.controlId = controlId;
+    try
+    {
+        let sv = new Service();
+        response =  sv.getLocalData();
+    }
+    catch(ex)
+    {
+       handleException(ex,response,"code.ts getLocalData()")
+    }
+    return JSON.stringify(response);
+    
+}
+
+function getForm(formId, divId:string):string{
+    var response = new GSResponse();
+
     response.formId = formId;
     
     try
     {
         let sv = new Service();
-        response =  sv.getForm(formId,formUrl);
+        response =  sv.getForm(formId,divId);
     }
     catch(ex)
     {

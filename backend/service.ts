@@ -1,16 +1,17 @@
-import { DomainResponse } from "../models/DomainResponse";
-import { FileInfo } from "../Models/FileInfo";
-import { FileProcessItem } from "../models/FileProcessItem";
-import { GlucLevel } from "../models/GlucLevel";
-import { GSResponse } from "../Models/GSResponse";
-import { KVPCollection } from "../models/KVPCollection";
-import { NamedArray } from "../models/NamedAray";
-import { RecordItem } from "../models/RecordItem";
-import { RecordItemBase } from "../models/RecordItemBase";
-import { RecTypeInfo } from "../models/RecTypeInfo";
+import { DomainResponse } from "./models/DomainResponse";
+import { FileInfo } from "./Models/FileInfo";
+import { FileProcessItem } from "./models/FileProcessItem";
+import { GlucLevel } from "./models/GlucLevel";
+import { GSResponse } from "./Models/GSResponse";
+import { KVPCollection } from "./models/KVPCollection";
+import { NamedArray } from "./models/NamedAray";
+import { RecordItem } from "./models/RecordItem";
+import { RecordItemBase } from "./models/RecordItemBase";
+import { RecTypeInfo } from "./models/RecTypeInfo";
 import { G } from "./G";
 import { SysLog } from "./SysLog";
 import { Utils } from "./utils";
+import { LocalData} from './models/LocalData'
 
 export class Service {
     db;
@@ -127,6 +128,18 @@ export class Service {
 
     }
 
+    getLocalData():GSResponse{
+        let response = new GSResponse();
+        let db = new LocalData();
+        db.Items = Utils.getData(this.db,"Items");
+        db.FoodItems = Utils.getData(this.db,"FoodItems");
+        db.DrugItems = Utils.getData(this.db,"DrugItems");
+        db.ExeItems = Utils.getData(this.db,"ExeItems");
+
+        response.addObject("db",db);
+        return response;
+    }
+
     //todo: for now get the raw array, later a typed array
     getItems(): string {
         let grid = Utils.getData(this.db, "Items");
@@ -183,36 +196,17 @@ export class Service {
     }
 
 
-    getForm(formId: string, formUrl: string = ""): GSResponse {
+    getForm(formId: string, divId:string): GSResponse {
         let html = "";
         let response = new GSResponse();
-        if (formUrl == null)
-            formUrl = "";
 
-        // if (formUrl.length > 0)
-        //     html = Utils.getDocTextByName(formUrl);
-        // else
-        //     html = Utils.getDocTextByName(formId);
-
-        if (html == null || html.length == 0) {
-            html = HtmlService.createTemplateFromFile(`frontend/${formId}`).evaluate().getContent();
-            //todo: create doc with html
-        }
+        html = HtmlService.createTemplateFromFile(`frontend/html/${formId}`).evaluate().getContent();
         if (html.length > 0) {
-            response.addHtml("content", html);
-            if (formId == "FOOD ") {
-                // response.addData("fields", `["FECHA","HORA","REC_TYPE","MEAL_TYPES"]`)
-                // response.addData("types", `["date","time","number","text"]`);
-                // response.addData("controls", `["input","input","select","select"]`);
-                // response.addData("childFields", `["itemId","descr","cant"]`);
-                // response.addData("childTypes", `["hidden","text","number"]`);
-                // response.addData("childControls", `["input","input","input"]`);
-            }
+            response.addHtml(divId, html);
         }
         else {
             this.result = -1;
             this.message = `form ${formId} not found`;
-            //response.addError("error", `form ${formId} not found`, 404);
         }
 
         return response;
@@ -659,6 +653,15 @@ export class Service {
         }
 
         return response;
+    }
+
+    getRecTypes()
+    {
+        let html = Utils.getSelect(
+            Utils.getData(this.db,"Items").filter(x=>x[0]=="RT"),
+            "RT",1,2,"Select Record Type","","select-css");
+        SysLog.log(0,"html recTypes", "service.ts getRecTypes()",html);
+        return html;
     }
 
 

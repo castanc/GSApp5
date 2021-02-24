@@ -5,6 +5,8 @@ import { SysLog } from "./SysLog";
 export class Utils {
 
     static ex;
+    static sortCol2 = 9;
+    static sortDescending2 = false;
     static getCreateFolder(folderName) {
         var folders = DriveApp.getFoldersByName(folderName);
         var folder = null;
@@ -374,6 +376,60 @@ export class Utils {
 
         return minutes;
     }
+
+    static sortFunction2(a, b) {
+        if (a[this.sortCol2] == b[this.sortCol2]) {
+            return 0;
+        }
+        else {
+            if (this.sortDescending2)
+                return (a[this.sortCol2] > b[this.sortCol2]) ? -1 : 1;
+            else
+                return (a[this.sortCol2] < b[this.sortCol2]) ? -1 : 1;
+        }
+    }
+
+    static getSelect(arr, name, idCol, valueCol, 
+        title = "", selectedValue = "",classes = "", multiple = "", required = "",  sortDir = "A") {
+        let options = "";
+        let onChange = `onchange="onchange_${name}(this.options[this.selectedIndex].value)"`;
+
+        if (sortDir == "A" || sortDir == "D") {
+            this.sortCol2 = valueCol;
+            this.sortDescending2 = sortDir == "D";
+            arr = arr.sort(this.sortFunction2);
+        }
+
+        if ( classes != "" )
+            classes = `class="${classes}"`;
+
+        if (title.length == 0)
+            title = "Select...";
+
+        if ( selectedValue = "")
+            options = `<option value="" selected>${title}</option>`;
+        else
+            options = `<option value="">${title}</option>`;
+
+
+        for (var i = 0; i < arr.length; i++) {
+            if (selectedValue != "" && arr[i][idCol] == selectedValue)
+                options = `${options}<option value="${arr[i][idCol]}" selected>${arr[i][valueCol]}</option>`
+            else
+                options = `${options}<option value="${arr[i][idCol]}">${arr[i][valueCol]}</option>`
+        }
+
+        let html = `<select name="SELECT_${name}" id="SELECT_${name}" ${required} ${multiple} 
+            ${onChange} 
+            ${classes}>
+        ${options}</select>`
+
+        //console.log(`getHtml(): startRow:${startRow}`,arr,html);
+        return html;
+
+    }
+
+
 
     static getSeconds(time: string, sep: string = ":"): number {
         let minutes = 0;

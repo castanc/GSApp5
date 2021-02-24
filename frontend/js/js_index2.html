@@ -1,42 +1,32 @@
 <script>
-let currentSection = "";
-let formulario;
-let inputs;
-let fecha = "2021-01-01";
-let hora = "00:00";
-let RecTypes;
-let GlucLevels;
+    let currentSection = "";
+    let formulario;
+    let inputs;
+    let fecha = "2021-01-01";
+    let hora = "00:00";
+    let RecTypes;
+    let GlucLevels;
+    let response;
+    let db = new LocalData();
+    let htmlCache = {};
+    let sortDescending = false;
+    let sortDescending2 = false;
+    let sortCol2 = 0;
+    let recType = "";
 
 
 
-function loadBaseData(){
-    let result = true;
-    let json = localStorage.getItem("Items");
-    if ( json != undefined )
-        Items = JSON.parse(json);
-    else result = false;
+    function loadBaseData() {
+        let result = true;
+        let json = localStorage.getItem("db");
+        if (json != undefined)
+            db = JSON.parse(json);
+        else result = false;
+        return result;
 
-    if ( result )
-    {
-        json = localStorage.getItem("RecTypes");
-        if ( json != undefined )
-            RecTypes = JSON.parse(json);
     }
-    else result = false;
 
-    if ( result )
-    {
-        json = localStorage.getItem("GlucLevels");
-        if ( json != undefined )
-            GlucLevels = JSON.parse(json);
-    }
-    else result = false;
-
-    return result;
-
-}
-
-function refreshDate() {
+    function refreshDate() {
         dt = new Date();
         var m = padLeft(dt.getMonth() + 1, 10, '0');
         var d = padLeft(dt.getDate(), 10, '0');
@@ -53,32 +43,166 @@ function refreshDate() {
     }
 
 
-function resetForm(formId)
-{
-    let form = document.getElementById(formId);
-    form.reset();
-    refreshDate();
-}
+    function sortFunction2(a, b) {
+        if (a[sortCol2] == b[sortCol2]) {
+            return 0;
+        }
+        else {
+            if (sortDescending2)
+                return (a[sortCol2] > b[sortCol2]) ? -1 : 1;
+            else
+                return (a[sortCol2] < b[sortCol2]) ? -1 : 1;
+        }
+    }
 
-function initialize(){
-    formulario = document.getElementById('formulario');
-    console.log("initialize(), formulario:",formulario);
 
-    refreshDate();
-    if (!loadBaseData )
-    {
+    function getSelect(arr, name, idCol, valueCol,
+        title = "", selectedValue = "", classes = "", multiple = "", required = "", sortDir = "A") {
+        let options = "";
+        let onChange = `onchange="onchange_${name}(this.options[this.selectedIndex].value)"`;
+
+        if (sortDir == "A" || sortDir == "D") {
+            sortCol2 = valueCol;
+            sortDescending2 = sortDir == "D";
+            arr = arr.sort(sortFunction2);
+        }
+
+        if (classes != "")
+            classes = `class="${classes}"`;
+
+        if (title.length == 0)
+            title = "Select...";
+
+        if (selectedValue = "")
+            options = `<option value="" selected>${title}</option>`;
+        else
+            options = `<option value="">${title}</option>`;
+
+
+        for (var i = 0; i < arr.length; i++) {
+            if (selectedValue != "" && arr[i][idCol] == selectedValue)
+                options = `${options}<option value="${arr[i][idCol]}" selected>${arr[i][valueCol]}</option>`
+            else
+                options = `${options}<option value="${arr[i][idCol]}">${arr[i][valueCol]}</option>`
+        }
+
+        let html = `<select name="SELECT_${name}" id="SELECT_${name}" ${required} ${multiple} 
+            ${onChange} 
+            ${classes}>
+        ${options}</select>`
+
+        //console.log(`getHtml(): startRow:${startRow}`,arr,html);
+        return html;
 
     }
 
-    //inputs = document.querySelectorAll('#formulario input');
-    // inputs.forEach((input) => {
-	// input.addEventListener('keyup', validarFormulario);
-	// input.addEventListener('blur', validarFormulario);
-//});
 
-}
 
-console.log("js_index onLoad")
+    function resetForm(formId) {
+        let form = document.getElementById(formId);
+        form.reset();
+        refreshDate();
+    }
+
+    function processResponse(json) {
+        response = JSON.parse(json);
+        console.log("Response received from Server. processResponse():", response);
+        hideDiv("spinner");
+        if (response.result == 200) {
+            for (var i = 0; i < response.html.length; i++) {
+                writeInnerHtml(response.html[i].key, response.html[i].value)
+                localStorage.setItem(`${response.html[i].key}_${recType}`, response.html[i].value);
+            }
+
+            let msg = "";
+            for (var i = 0; i < response.messages.lenght; i++) {
+                msg = `${msg}<p class="text-info>${response.messages[i]}</p></br>`;
+            }
+            writeInnerHtml("result", msg);
+
+        }
+        else {
+            let row = `<tr><td>Server Error</td><td>${response.result}</td></tr>`;
+            for (var i = 0; i < response.error.length; i++) {
+                row = `${row}<tr><td>${response.error[i].key}</td><td>${response.error[i].value}</td></tr>`;
+            }
+
+            let table = `<table>${row}</table>`;
+            writeInnerHtml("error", table);
+        }
+    }
+
+
+    function failureHandler(error) {
+        hideDiv("spinner");
+        writeInnerHtml("error", error);
+    }
+
+
+    //2.getLocalData
+    function processResponseInitialize(json) {
+        processResponse(json);
+        if (response.result == 200) {
+            refreshDate();
+            for (var i = 0; i < response.objects.length; i++) {
+                db = response.objects[i].value;
+                console.log("db", db);
+                localStorage.setItem("db", JSON.stringify(db));
+                break;
+            }
+        }
+    }
+
+    //0.1 Process Response Load Main
+    function processResponseLoadMain(json) {
+        processResponse(json);
+        if (response.result == 200) {
+            if (!loadBaseData())
+                google.script.run.withFailureHandler(failureHandler)
+                    .withSuccessHandler(processResponseInitialize)
+                    .getLocalData();
+        }
+    }
+
+
+
+    //0. Initialize
+    function initialize() {
+        formulario = document.getElementById('formulario');
+
+        google.script.run.withFailureHandler(failureHandler).withSuccessHandler(processResponseLoadMain)
+            .getForm("NewRecord", "sectionNew");
+
+
+
+        //inputs = document.querySelectorAll('#formulario input');
+        // inputs.forEach((input) => {
+        // input.addEventListener('keyup', validarFormulario);
+        // input.addEventListener('blur', validarFormulario);
+        //});
+
+    }
+
+    function openSection(sectionName) {
+        let p = sectionName.split("_");
+        console.log("openSection()", p, currentSection);
+        if (p[1] == currentSection) {
+            showDiv(p[1], false);
+            currentSection = "";
+            return;
+        }
+        currentSection = p[1];
+        showDiv(currentSection, true);
+    }
+
+    function onchange_RT(e) {
+        recType = e;
+        console.log("onchange_RT", e);
+    }
+
+
+
+    console.log("js_index onLoad")
     window.addEventListener('load', initialize);
     window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
         console.log("unahndled error:", errorMsg);
@@ -87,20 +211,6 @@ console.log("js_index onLoad")
         return false;
     }
 
-
-function openSection(sectionName )
-{
-    let p = sectionName.split("_");
-    console.log("openSection()",p,currentSection);
-    if( p[1] == currentSection )
-    {
-        showDiv( p[1],false);
-        currentSection = "";
-        return;
-    }
-    currentSection = p[1];
-    showDiv(currentSection,true);
-}
 
 
 </script>
